@@ -58,4 +58,4 @@ Before starting your local middleware bot installation, make sure you have the f
 Proceed to **Step 2: Microsoft Entra App Registration** to create the authentication backbone for your bot.
 
 ---
-<\br><\br>
+<br><br>
