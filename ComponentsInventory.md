@@ -45,4 +45,4 @@
 | Azure Storage Account        | Optional            | Persist session/memory beyond runtime |
 | Teams App Manifest           | Optional            | Teams channel integration (later)     |
 
-<\br><\br>
+<br><\br>
