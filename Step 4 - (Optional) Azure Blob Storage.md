@@ -1,5 +1,8 @@
 # Step 4: (Optional) Azure Blob Storage
 
+> **Disclaimer:**
+> If you do not configure an Azure Blob Storage account, your bot will store all session data and message history only in memory. This means the total number of prompts and answers that can be retained per session is limited by available system memory and the constraints in your codebase. Without persistent storage, all session data will be lost when the bot is restarted, and features such as exporting full session history or retrieving conversations across restarts will not function reliably. For complete export and persistent session features, it is recommended to enable Azure Blob Storage.
+
 If you want your bot to persist memory or conversation history beyond the current runtime (for example, to support advanced session features or analytics), you can configure Azure Blob Storage as a backend. This step is optional—your bot will still run locally without it, but features requiring persistent storage will not be available.
 
 ---
