@@ -66,7 +66,7 @@ AZURE_BLOB_CONTAINER_NAME=bot-memory
 
 ### Next Step
 
-You can now proceed to running and testing your bot locally using the Bot Framework Emulator!
+You can now proceed to some final steps at **[Step 5: Azure Bot Service (Channel Registration) for Teams Integration & OAuth](Step%205%20-%20Azure%20Bot%20Service%20%28Channel%20Registration%29%20for%20Teams%20Integration%20&%20OAuth.md)**
 
 ---
 <br><br>
