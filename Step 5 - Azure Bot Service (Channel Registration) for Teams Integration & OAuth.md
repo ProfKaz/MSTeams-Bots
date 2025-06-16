@@ -83,9 +83,22 @@ OAUTH_CONNECTION_NAME=your-oauth-connection-name
 
 ---
 
+## 5.7. Streaming Endpoint Configuration
+
+The **Enable Streaming Endpoint** option under **Settings > Configuration** in Azure Bot Service should remain **unchecked** unless you specifically need support for:
+
+* WebSocket-based **Direct Line** clients
+* **Speech SDK** scenarios
+* **Proactive messaging** via WebSockets
+
+For most use cases, including local development with the Bot Framework Emulator and Teams integration via HTTP(S), **this setting is not required**.
+
+---
+
 ### Next Step
 
 Proceed to creating a Teams app manifest and sideloading the bot in Teams for user testing, or begin full deployment to your desired channels.
 
 ---
+
 <br><br>
