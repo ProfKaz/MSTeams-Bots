@@ -20,7 +20,7 @@ To enable GPT-powered features in your bot, you must create and configure an Azu
 
 ## 3.2. Deploy a Model
 
-1. Once the resource is created, navigate to your **Azure OpenAI** resource in the portal.
+1. Once the resource is created, navigate to your **[Azure OpenAI](https://oai.azure.com/)** resource in the portal.
 2. Go to the **Model deployments** section.
 3. Click **Create** or **Deploy model**.
 4. Choose a model (e.g., `gpt-35-turbo` or `gpt-4`).
