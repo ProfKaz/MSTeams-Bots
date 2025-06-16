@@ -84,7 +84,7 @@ OAUTH_CONNECTION_NAME=your-oauth-connection-name
 
 ### Next Step
 
-Proceed to **Step 3: Azure OpenAI Resource** to enable AI-powered capabilities.
+Proceed to **[Step 3: Azure OpenAI Resource](Step%203%20-%20Azure%20OpenAI%20Resource.md)** to enable AI-powered capabilities.
 
 ---
 <br><br>
