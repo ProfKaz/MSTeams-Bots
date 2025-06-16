@@ -13,46 +13,55 @@ Azure Bot Service is required to:
 
 ---
 
-## 5.1. Create an Azure Bot Channel Registration
+## 5.1. Create an Azure Bot Service (via Marketplace)
 
 1. Go to the [Azure Portal](https://portal.azure.com/).
-2. Click **Create a resource** and search for **Bot Channels Registration**.
-3. Click **Create** and complete the required fields:
+2. Click **Create a resource** and search for **Azure Bot** in the Azure Marketplace.
+3. Select **Azure Bot** from the marketplace results.
+4. Click **Create** and complete all required fields:
 
    * **Bot handle**: Choose a globally unique name.
    * **Subscription/Resource Group**: Select as appropriate.
    * **Region**: Select your preferred Azure region.
-   * **Messaging endpoint**: For local testing, set to `http://localhost:3978/api/messages` (use your ngrok URL when exposing your bot externally)
-   * **Microsoft App ID** and **Password**: Use the values from your `.env` (`MicrosoftAppId`, `MicrosoftAppPassword`).
-4. Click **Review + Create** and then **Create**.
+   * **Microsoft App ID & Password**: Use the values from your `.env` (`MicrosoftAppId`, `MicrosoftAppPassword`). You can create a new App Registration here if not already created.
+   * **Messaging endpoint**: For local testing, use `http://localhost:3978/api/messages`. For remote testing, use your ngrok HTTPS URL.
+   * Complete other fields as required.
+5. Click **Review + Create** and then **Create** to deploy the bot resource.
 
 ---
 
-## 5.2. Configure Microsoft Teams Channel
+## 5.2. Access Bot Service for Channel Configuration
 
-1. After deployment, open your Bot Service in Azure.
-2. In the **Channels** blade, click **Microsoft Teams**.
-3. Follow the prompts to enable the Teams channel.
-4. Save and note any Teams-specific settings you may want to configure (calling, notifications, etc.).
+1. After deployment, navigate to the new resource by searching for **Bot Services** in the Azure Portal menu.
+2. Select your newly created bot from the list.
+3. Here you will find the **Channels** blade, where you can enable Teams and other channels, and the **Settings** for OAuth connections.
 
 ---
 
-## 5.3. Add an OAuth Connection (for Authentication)
+## 5.3. Configure Microsoft Teams Channel
 
-1. In your Bot Service, go to the **Settings** or **OAuth Connections** blade.
-2. Click **+ Add Setting** or **+ New Connection Setting**.
+1. In the **Channels** blade of your Bot Service, click **Microsoft Teams**.
+2. Follow the prompts to enable the Teams channel.
+3. Save and configure Teams-specific settings (e.g., calling, notifications) as needed.
+
+---
+
+## 5.4. Add an OAuth Connection (for Authentication)
+
+1. In your Bot Service, go to **Settings** > **Configuration**.
+2. Scroll down and click **Add OAuth Connection Settings**.
 3. Fill out the connection details:
 
    * **Name**: Must match the `OAUTH_CONNECTION_NAME` in your `.env`
    * **Service Provider**: Select **Azure Active Directory v2**.
-   * **Client id / Secret / Tenant id**: Use your Microsoft Entra App values.
+   * **Client ID / Secret / Tenant ID**: Use your Microsoft Entra App values.
    * **Scopes**: Enter the necessary permissions (e.g., `openid profile User.Read`).
-4. Save your connection.
-5. Your bot code can now use this OAuth connection to prompt users for authentication in Teams.
+4. Click **Save** to create the connection.
+5. Your bot can now initiate authentication flows through this connection when used in Microsoft Teams.
 
 ---
 
-## 5.4. Update Your .env File (Reference)
+## 5.5. Update Your .env File (Reference)
 
 Ensure the following values are present:
 
@@ -64,7 +73,7 @@ OAUTH_CONNECTION_NAME=your-oauth-connection-name
 
 ---
 
-## 5.5. Validation
+## 5.6. Validation
 
 * In the Azure portal, your bot status should show as **Registered**.
 * Teams channel should show as **Running**.
