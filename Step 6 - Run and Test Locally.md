@@ -43,38 +43,51 @@ These files are essential for consistent execution across environments.
 To run the bot locally:
 
 ```bash
-node server.js
+node server/server.js
 ```
 
-If successful, you should see console output indicating the bot is listening (e.g., `✅ Bot is running on http://localhost:3978/api/messages`).
+If successful, you should see console output indicating the bot is listening (e.g., `✅ Server running on port 3978`).
 
 ---
 
 ## 6.4. Connect Using Bot Framework Emulator
 
-1. Open [Bot Framework Emulator](https://aka.ms/botframework-emulator).
-2. Click **Open Bot**.
-3. Use the following endpoint:
+### Option A: Without Authentication
+
+If you're running the bot locally and do not require Microsoft Entra authentication:
+
+1. Ensure your `.env` file has these values **empty or commented out**:
+
+   ```env
+   # MicrosoftAppId=
+   # MicrosoftAppPassword=
+   ```
+2. Restart the bot: `node server/server.js`
+3. Open Bot Framework Emulator
+4. Connect to:
 
    ```
    http://localhost:3978/api/messages
    ```
-4. Interact with your bot to test capabilities such as:
+5. Leave **Microsoft App ID** and **Password** fields blank
 
-   * Azure OpenAI responses
-   * Memory storage (in-memory or Azure Blob if configured)
-   * Logging and commands
+### Option B: With Authentication
 
-> If you’ve configured authentication or Azure Blob, verify those functionalities as well.
+If you have defined values for `MicrosoftAppId` and `MicrosoftAppPassword` in your `.env`, then:
+
+1. Use those exact values when prompted in the Emulator.
+2. This will allow the Emulator to authenticate and connect correctly.
+
+> ⚠️ If credentials are incorrect or mismatched, you will receive a 401 Unauthorized error.
 
 ---
 
 ## 6.5. Validation Checklist
 
-* [ ] Bot starts without errors using `node server.js`
-* [ ] Emulator successfully connects to `http://localhost:3978/api/messages`
-* [ ] You can send and receive messages
-* [ ] Memory and session handling behave as expected
+* [ ] Bot starts without errors using `node server/server.js`
+* [ ] Emulator connects to `http://localhost:3978/api/messages`
+* [ ] Messages are sent and received successfully
+* [ ] Optional: Memory/session features and OpenAI responses work as expected
 
 ---
 
