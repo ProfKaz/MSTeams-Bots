@@ -97,7 +97,7 @@ For most use cases, including local development with the Bot Framework Emulator 
 
 ### Next Step
 
-Proceed to creating a Teams app manifest and sideloading the bot in Teams for user testing, or begin full deployment to your desired channels.
+Proceed to **[Step 6: Run and Test Locally](Step%206%20-%20Run%20and%20Test%20Locally.md)**
 
 ---
 
