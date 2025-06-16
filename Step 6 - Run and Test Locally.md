@@ -91,10 +91,60 @@ If you have defined values for `MicrosoftAppId` and `MicrosoftAppPassword` in yo
 
 ---
 
+## 6.6. Troubleshooting
+
+### ❌ Problem: 401 Unauthorized when connecting from Emulator
+
+**Cause:** The Emulator is sending credentials that the bot doesn't recognize, or the bot is expecting no credentials.
+
+**Fix:**
+
+* If testing locally without authentication, ensure these lines in `.env` are empty or commented out:
+
+  ```env
+  # MicrosoftAppId=
+  # MicrosoftAppPassword=
+  ```
+* In the Emulator, leave **Microsoft App ID** and **Password** fields blank.
+* Restart the bot.
+
+---
+
+### ❌ Problem: OpenAI returns 404 Resource Not Found
+
+**Cause:** The `AZURE_OPENAI_ENDPOINT` includes the full REST path instead of just the base endpoint.
+
+**Fix:**
+Update `.env` to use the correct base endpoint format:
+
+```env
+AZURE_OPENAI_ENDPOINT=https://<your-resource-name>.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT=<your-deployment-name>
+AZURE_OPENAI_KEY=<your-api-key>
+```
+
+* The endpoint must **not** include `/openai/deployments/...`
+* Restart the bot after making changes.
+
+---
+
+### ❌ Problem: No bot response, even though connected
+
+**Cause:** Missing or misconfigured environment variables, or errors in `openAIIntegration.js` or logging.
+
+**Fix:**
+
+* Check bot logs in terminal.
+* Confirm that all required `.env` values are loaded and match expected format.
+* Validate OpenAI and Azure Storage connections if used.
+
+---
+
 ### Next Step
 
 You are now ready to create a **Teams App Manifest** and sideload your bot for testing inside Microsoft Teams.
 
 ---
+
 
 <br><br>
