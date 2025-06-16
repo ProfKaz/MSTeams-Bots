@@ -68,7 +68,7 @@ AZURE_OPENAI_DEPLOYMENT=your-model-deployment-name
 
 ### Next Step
 
-Proceed to **Step 4: (Optional) Azure Blob Storage** if you wish to enable persistent memory, or continue to running and testing your bot locally.
+Proceed to **[Step 4: (Optional) Azure Blob Storage](Step%204%20-%20%28Optional%29%20Azure%20Blob%20Storage.md)** if you wish to enable persistent memory, or continue to running and testing your bot locally.
 
 ---
 <br><br>
