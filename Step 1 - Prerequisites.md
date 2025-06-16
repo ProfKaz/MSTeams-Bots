@@ -55,7 +55,7 @@ Before starting your local middleware bot installation, make sure you have the f
 
 #### **Next Step**
 
-Proceed to **Step 2: Microsoft Entra App Registration** to create the authentication backbone for your bot.
+Proceed to **[Step 2: Microsoft Entra App Registration](Step%202%20-%20Microsoft%20Entra%20App%20Registration.md)** to create the authentication backbone for your bot.
 
 ---
 <br><br>
