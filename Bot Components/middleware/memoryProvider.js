@@ -12,6 +12,19 @@ const containerClient = blobServiceClient.getContainerClient(
 
 const getSessionBlobName = (sessionId) => `session-${sessionId}.json`;
 
+function safeJsonParse(str) {
+  try {
+    if (!str || typeof str !== "string") return [];
+    const parsed = JSON.parse(str);
+    // Defensive: Only return if it's an array (for memory)
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch (err) {
+    console.error("[memoryProvider] Corrupted or empty JSON, resetting to empty. Error:", err.message);
+    return [];
+  }
+}
+
 async function storeMessage(sessionId, message) {
   const blobName = getSessionBlobName(sessionId);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
@@ -19,7 +32,7 @@ async function storeMessage(sessionId, message) {
   let existingMessages = [];
   try {
     const downloadBlockBlobResponse = await blockBlobClient.downloadToBuffer();
-    existingMessages = JSON.parse(downloadBlockBlobResponse.toString());
+    existingMessages = safeJsonParse(downloadBlockBlobResponse.toString());
   } catch (err) {
     if (err.statusCode !== 404) throw err;
   }
@@ -31,10 +44,9 @@ async function storeMessage(sessionId, message) {
 async function listMemory(sessionId) {
   const blobName = getSessionBlobName(sessionId);
   const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
   try {
     const downloadBlockBlobResponse = await blockBlobClient.downloadToBuffer();
-    return JSON.parse(downloadBlockBlobResponse.toString());
+    return safeJsonParse(downloadBlockBlobResponse.toString());
   } catch (err) {
     if (err.statusCode === 404) return [];
     throw err;

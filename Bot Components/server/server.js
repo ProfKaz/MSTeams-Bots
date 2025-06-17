@@ -7,6 +7,7 @@ const { storeAnalytics } = require('../commands/commandsHandler');
 const { getSessionId } = require('../utils/sessionUtils');
 const { trackUserActivity } = require('../middleware/analytics');
 const { storeMessage } = require('../middleware/memoryProvider');
+const helpText = require('../utils/helpText');
 const path = require('path');
 
 const app = express();
@@ -32,32 +33,7 @@ app.post('/api/messages', (req, res) => {
       for (const member of context.activity.membersAdded) {
         if (member.id !== context.activity.recipient.id) {
           const welcomeMessage = '👋 Welcome to Kaz Bot demos! Let me know how I can assist you today.';
-          const commandsMessage = `💡 Available commands:
-
-📚 Memory Options:
-- list memory
-- list memory full
-- reset memory
-
-🧾 Prompts Options:
-- list prompts
-- show last N prompts
-- show full prompts
-- clear prompts
-
-📬 Answers Options:
-- list answers
-- show last N answers
-- show full answers
-- clear answers
-
-📤 Export Options:
-- export memory as json
-- export prompts as json
-- export answers as markdown
-
-📈 Analytics:
-- show analytics`;
+          const commandsMessage = helpText;
 
           await context.sendActivity(welcomeMessage);
           await context.sendActivity(commandsMessage);

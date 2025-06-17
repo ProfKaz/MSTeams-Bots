@@ -6,6 +6,12 @@ const config = require('../config/config');
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
+const helpText = require('../utils/helpText');
+const servicesDir = path.join(__dirname, '../services');
+const { missingComponentWarning } = require('../utils/warningMessage');
+const integrationsRegistry = require('../server/integrationsRegistry');
+const sessionActiveModules = {}; // Key: sessionId, Value: moduleName (string)
+const sessionModuleWindows = {}; // Key: sessionId, Value: Array of {name, initTime, closedAt}
 
 function sanitizeFilename(input) {
   return input.replace(/[^a-z0-9-_]/gi, '_');
@@ -120,32 +126,164 @@ async function handleCommand(text, sessionId, context) {
   }
 
   if (command === 'kazbot help!') {
-    return `💡 Available commands:
+    return helpText;
+  }
 
-📚 Memory Options:
-- list memory
-- list memory full
-- reset memory
+  // Support "!kazbot command services" or "kazbot command services" (case insensitive, with or without exclamation mark)
+  const normalized = command.replace(/^!/, '').trim();
+  if (normalized === 'kazbot command services') {
+      const { getAvailableIntegrations } = require('../server/serviceManager');
+      const integrations = getAvailableIntegrations();
+      if (!integrations) {
+          return "No modules are loaded.";
+      } else {
+          return `**Available integrations:**\n\n${integrations.join('\n\n')}`;
+      }
+  }
 
-🧾 Prompts Options:
-- list prompts
-- show last N prompts
-- show full prompts
-- clear prompts
+    // 1. Parse for lifecycle commands FIRST
+  const lifecycleMatch = normalized.match(/^kazbot\s+(init|close|status|restart|help)\s+(.+)$/);
+  if (lifecycleMatch) {
+    const [, action, rawModule] = lifecycleMatch;
+    const moduleName = rawModule.trim();
+    switch(action) {
+      case 'init': {
+        const result = await integrationsRegistry.initModule(moduleName);
+        // Set as active module for this session
+        sessionActiveModules[sessionId] = moduleName;
 
-📬 Answers Options:
-- list answers
-- show last N answers
-- show full answers
-- clear answers
+        // Track module windows
+        if (!sessionModuleWindows[sessionId]) sessionModuleWindows[sessionId] = [];
+        sessionModuleWindows[sessionId].push({
+          name: moduleName,
+          initTime: new Date().toISOString(),
+          closedAt: null
+        });
+        return result;
+      }
+      case 'close': {
+        const result = await integrationsRegistry.closeModule(moduleName);
+        if (sessionActiveModules[sessionId] === moduleName) {
+          delete sessionActiveModules[sessionId];
+        }
+        // Mark window as closed
+        const windowArr = sessionModuleWindows[sessionId];
+        if (windowArr) {
+          const last = windowArr.reverse().find(w => w.name === moduleName && !w.closedAt);
+          if (last) last.closedAt = new Date().toISOString();
+          windowArr.reverse(); // Restore order
+        }
+        return result;
+      }
+      case 'status':
+        return await integrationsRegistry.statusModule(moduleName);
+      case 'restart':
+        return await integrationsRegistry.restartModule(moduleName);
+      case 'help':
+        return await integrationsRegistry.helpModule(moduleName);
+      default:
+        return `Unknown action "${action}".`;
+    }
+  }
 
-📤 Export Options:
-- export memory as json
-- export prompts as json
-- export answers as markdown
+  if (command === '!kazbot show session analytics') {
+    const { formatAnalytics } = require('../utils/analyticsFormatter');
+    const windows = sessionModuleWindows[sessionId] || [];
+    let summary = 'Session analytics for each module window:\n\n';
+    for (const w of windows) {
+      const all = await listMemory(sessionId);
+      const windowStart = new Date(w.initTime);
+      const windowEnd = w.closedAt ? new Date(w.closedAt) : new Date();
+      const windowMessages = all.filter(m =>
+        new Date(m.timestamp) >= windowStart && new Date(m.timestamp) <= windowEnd
+      );
+      const prompts = windowMessages.filter(m => m.from === 'user');
+      const answers = windowMessages.filter(m => m.from === 'bot');
+      summary += `- ${w.name}: ${windowMessages.length} total, ${prompts.length} prompts, ${answers.length} answers (${w.initTime} - ${w.closedAt || 'now'})\n`;
+    }
+    return `\`\`\`\n${summary}\n\`\`\``;  // This will preserve line breaks in most chat clients
+  }
 
-📈 Analytics:
-- show analytics`;
+  const exportSessionMatch = command.match(/^!kazbot export session (answers|memory|prompts)$/);
+  if (exportSessionMatch) {
+    const type = exportSessionMatch[1]; // "answers", "memory", or "prompts"
+    const windows = sessionModuleWindows[sessionId] || [];
+    let exported = [];
+    const all = await listMemory(sessionId);
+
+    for (const w of windows) {
+      const windowStart = new Date(w.initTime);
+      const windowEnd = w.closedAt ? new Date(w.closedAt) : new Date();
+      const windowMessages = all.filter(m =>
+        new Date(m.timestamp) >= windowStart && new Date(m.timestamp) <= windowEnd
+      );
+      if (type === 'answers') {
+        exported.push(...windowMessages.filter(m => m.from === 'bot'));
+      } else if (type === 'prompts') {
+        exported.push(...windowMessages.filter(m => m.from === 'user'));
+      } else {
+        exported.push(...windowMessages);
+      }
+    }
+    // Export as markdown
+    let markdown = '';
+    if (type === 'answers') {
+      markdown = exported.map(m => `- ${m.text}`).join('\n');
+    } else if (type === 'prompts') {
+      markdown = exported.map(m => `- ${m.text}`).join('\n');
+    } else {
+      markdown = exported.map(m => `- ${m.text || JSON.stringify(m)}`).join('\n');
+    }
+    const fileName = generateFileName(context, sessionId, `-session-${type}`, 'md');
+    fs.writeFileSync(path.join(__dirname, `../public/${fileName}`), markdown);
+    const baseUrl = getBaseUrl(context);
+    return `📎 Download link: ${baseUrl}/download/${fileName}`;
+  }
+
+  // 2. If no lifecycle match, parse legacy info command
+  if (command.startsWith('!kazbot ')) {
+    const requestedService = command.slice('!kazbot '.length).trim();
+    // ... rest of your legacy info logic ...
+  }
+
+  const servicesDir = path.join(__dirname, '../services');
+  // Detect commands like "!kazbot Microsoft Entra"
+  if (command.startsWith('!kazbot ')) {
+    const requestedService = command.slice('!kazbot '.length).trim();
+    const folders = fs.readdirSync(servicesDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+
+    const matchedFolder = folders.find(f => f.toLowerCase() === requestedService.toLowerCase());
+    if (matchedFolder) {
+        const modulePath = path.join(servicesDir, matchedFolder);
+
+        // 1. Check for moduleStructure.json
+        let requiredFiles = ['main.js', 'info.md'];
+        const moduleStructurePath = path.join(modulePath, 'moduleStructure.json');
+        if (fs.existsSync(moduleStructurePath)) {
+            try {
+                const raw = fs.readFileSync(moduleStructurePath, 'utf-8');
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed.required)) requiredFiles = parsed.required;
+            } catch {}
+        }
+
+        // 2. Validate presence
+        let missing = [];
+        requiredFiles.forEach(file => {
+            if (!fs.existsSync(path.join(modulePath, file))) missing.push(file);
+        });
+
+        if (missing.length > 0) {
+            return missingComponentWarning(matchedFolder, missing, modulePath);
+        } else {
+            const infoContent = fs.readFileSync(path.join(modulePath, 'info.md'), 'utf-8');
+            return `### ${matchedFolder}\n${infoContent}`;
+        }
+    } else {
+        return `Integration "${requestedService}" not found. Type "!kazbot command services" to see available integrations.`;
+    }
   }
 
   if (command === 'list memory') {
@@ -224,56 +362,73 @@ async function handleCommand(text, sessionId, context) {
   }
 
   if (command === 'show analytics') {
-  const analyticsBlobName = `session-${sessionId}-analytics.json`;
-  const analyticsClient = containerClient.getBlockBlobClient(analyticsBlobName);
-  let analytics = {
-    prompts: 0,
-    answers: 0,
-    exports: {},
-    files: []
-  };
-  try {
-    const download = await analyticsClient.downloadToBuffer();
-    analytics = JSON.parse(download.toString());
-  } catch (err) {
-    if (err.statusCode !== 404) throw err;
-  }
-
-  const exportStats = Object.entries(analytics.exports || {})
-    .map(([type, count]) => `  - ${type}: ${count}`)
-    .join('\n') || '  - None';
-
-  function getFriendlyExportText(name) {
-    if (name.endsWith('-prompts.json')) return 'Your prompts';
-    if (name.endsWith('-answers.md')) return 'Answers received';
-    if (name.endsWith('.json')) return 'Memory collected';
-    return 'Exported file';
-  }
-
-  // Display each export as a Markdown link with an emoji, each on its own line
-  const exportDetails = (analytics.files || []).map(entry => {
-    let size = '';
+    const analyticsBlobName = `session-${sessionId}-analytics.json`;
+    const analyticsClient = containerClient.getBlockBlobClient(analyticsBlobName);
+    let analytics = {
+      prompts: 0,
+      answers: 0,
+      exports: {},
+      files: []
+    };
     try {
-      const stat = fs.statSync(path.join(__dirname, '../public', entry.name));
-      size = ` (${(stat.size / 1024).toFixed(2)} KB)`;
-    } catch {}
-    const friendly = getFriendlyExportText(entry.name);
-    // Markdown-style link (works in Teams, Web Chat, etc)
-    return `\n\t🔗 ${friendly}: ${getBaseUrl(context)}/download/${entry.name} ${size}`;
-  }).join('\n') || '  • None';
-
-  return `📊 Analytics for this session:\n`
-    + `- User prompts: ${analytics.prompts}\n`
-    + `- Bot answers: ${analytics.answers}\n`
-    + `- Export counts:\n ${exportStats}\n`
-    + `- Exported files:\n ${exportDetails}`;
+      const download = await analyticsClient.downloadToBuffer();
+      analytics = JSON.parse(download.toString());
+    } catch (err) {
+      if (err.statusCode !== 404) throw err;
+    }
+    const { formatAnalytics } = require('../utils/analyticsFormatter');
+    return formatAnalytics(analytics, sessionModuleWindows[sessionId] || []);
   }
 
-  // ✅ Fallback to OpenAI chat completion
-  const messages = [{ role: 'user', content: text }];
-  const aiResponse = await generateChatCompletion(messages);
-  return aiResponse;
-}
+  // If an integration module is active for this session, try to answer using its ask method
+  const activeModuleName = sessionActiveModules[sessionId];
+  if (activeModuleName) {
+    // Load module topics if they exist
+    const moduleTopicsPath = path.join(__dirname, `../services/${activeModuleName}/mainModuleTopics.js`);
+    let topics = [];
+    if (fs.existsSync(moduleTopicsPath)) {
+      try {
+        topics = require(moduleTopicsPath);
+      } catch (e) {
+        topics = [];
+      }
+    }
+    // Check if any topic matches the user message (case insensitive)
+    const messageLower = text.toLowerCase();
+    const isApiTopic = topics.some(topic => messageLower.includes(topic.toLowerCase()));
+
+    const mod = integrationsRegistry.getLoadedModule(activeModuleName);
+
+    // If a topic matches, call the API and inject as context to LLM
+    if (isApiTopic && mod && typeof mod.run === 'function') {
+      const stats = await mod.run();
+      if (stats && !stats.error) {
+        const prompt = [
+          `You have real-time Microsoft Entra data available.`,
+          `User Question: "${text}"`,
+          `Data: ${JSON.stringify(stats)}`,
+          `Answer based ONLY on the provided data above. If the question is unrelated, respond as usual.`
+        ].join('\n');
+        const aiResponse = await generateChatCompletion([{ role: 'user', content: prompt }]);
+        return aiResponse;
+      }
+    }
+
+    // Otherwise, fallback to module's ask method for pattern matches, if you want to keep this:
+    if (mod && typeof mod.ask === 'function') {
+      const moduleAnswer = await mod.ask(text);
+      if (moduleAnswer && !moduleAnswer.startsWith("I don't understand")) {
+        return moduleAnswer;
+      }
+    }
+  }
+
+
+    // ✅ Fallback to OpenAI chat completion
+    const messages = [{ role: 'user', content: text }];
+    const aiResponse = await generateChatCompletion(messages);
+    return aiResponse;
+  }
 
 module.exports = {
   handleCommand,
