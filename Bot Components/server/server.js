@@ -48,6 +48,18 @@ app.post('/api/messages', (req, res) => {
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
+app.get('/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filepath = path.join(__dirname, '../public', filename);
+  console.log('Attempting to download file:', filepath);  // <--- Add this line!
+  res.download(filepath, err => {
+    if (err) {
+      console.error('Download error:', err);
+      res.status(404).send('File not found');
+    }
+  });
+});
+
 app.listen(config.port, () => {
   console.log(`✅ Server running on port ${config.port}`);
 });

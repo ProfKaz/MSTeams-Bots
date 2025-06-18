@@ -12,6 +12,13 @@ const { missingComponentWarning } = require('../utils/warningMessage');
 const integrationsRegistry = require('../server/integrationsRegistry');
 const sessionActiveModules = {}; // Key: sessionId, Value: moduleName (string)
 const sessionModuleWindows = {}; // Key: sessionId, Value: Array of {name, initTime, closedAt}
+const getBaseUrl = require('../utils/getBaseUrl');
+
+function reloadModule(moduleName) {
+  const modulePath = path.join(__dirname, '../services', moduleName, 'main.js');
+  delete require.cache[require.resolve(modulePath)];
+  return require(modulePath);
+}
 
 function sanitizeFilename(input) {
   return input.replace(/[^a-z0-9-_]/gi, '_');
@@ -79,12 +86,6 @@ async function storeAnalytics(sessionId, type, fileName = null) {
 
   const data = JSON.stringify(analytics);
   await analyticsClient.upload(data, Buffer.byteLength(data), { overwrite: true });
-}
-
-function getBaseUrl(context) {
-  const scheme = context.activity.serviceUrl?.startsWith('https') ? 'https' : 'http';
-  const host = context.activity.channelId === 'emulator' ? 'localhost:3978' : context.activity.serviceUrl;
-  return `${scheme}://${host}`;
 }
 
 async function handleCommand(text, sessionId, context) {
@@ -238,6 +239,31 @@ async function handleCommand(text, sessionId, context) {
     fs.writeFileSync(path.join(__dirname, `../public/${fileName}`), markdown);
     const baseUrl = getBaseUrl(context);
     return `📎 Download link: ${baseUrl}/download/${fileName}`;
+  }
+
+  const reloadRegex = /^!kazbot reload (.+)$/i;
+  const reloadMatch = text.trim().match(reloadRegex);
+  if (reloadMatch) {
+    const moduleName = reloadMatch[1].trim();
+    // Try to reload the integration module by folder name (case-insensitive match)
+    const folders = fs.readdirSync(servicesDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+
+    const matchedFolder = folders.find(f => f.toLowerCase() === moduleName.toLowerCase());
+    if (matchedFolder) {
+      try {
+        reloadModule(matchedFolder);
+        if (integrationsRegistry.reloadModule) {
+          await integrationsRegistry.reloadModule(matchedFolder);
+        }
+        return `🔄 Module **${matchedFolder}** reloaded successfully!`;
+      } catch (err) {
+        return `❌ Failed to reload module **${matchedFolder}**: ${err.message}`;
+      }
+    } else {
+      return `Integration module "${moduleName}" not found.`;
+    }
   }
 
   // 2. If no lifecycle match, parse legacy info command
@@ -401,7 +427,7 @@ async function handleCommand(text, sessionId, context) {
 
     // If a topic matches, call the API and inject as context to LLM
     if (isApiTopic && mod && typeof mod.run === 'function') {
-      const stats = await mod.run();
+      const stats = await mod.run("", context);
       if (stats && !stats.error) {
         const prompt = [
           `You have real-time Microsoft Entra data available.`,
@@ -416,13 +442,12 @@ async function handleCommand(text, sessionId, context) {
 
     // Otherwise, fallback to module's ask method for pattern matches, if you want to keep this:
     if (mod && typeof mod.ask === 'function') {
-      const moduleAnswer = await mod.ask(text);
+      const moduleAnswer = await mod.ask(text, context);  // <--- pass context here!
       if (moduleAnswer && !moduleAnswer.startsWith("I don't understand")) {
         return moduleAnswer;
       }
     }
   }
-
 
     // ✅ Fallback to OpenAI chat completion
     const messages = [{ role: 'user', content: text }];

@@ -91,11 +91,39 @@ function getLoadedModule(moduleName) {
   return null;
 }
 
+async function reloadModule(moduleName) {
+  // Normalize folder name
+  const modulePath = getModulePath(moduleName);
+  if (!modulePath || !fs.existsSync(modulePath)) {
+    throw new Error(`Module '${moduleName}' not found at expected path.`);
+  }
+  // Remove from require cache
+  delete require.cache[require.resolve(modulePath)];
+  // If the module was loaded, attempt to close it gracefully first
+  if (loadedModules[moduleName] && loadedModules[moduleName].mod && loadedModules[moduleName].mod.close) {
+    try {
+      await loadedModules[moduleName].mod.close();
+    } catch (err) {
+      // Ignore errors during close, continue reload
+    }
+  }
+  // Require again and re-init
+  try {
+    const mod = require(modulePath);
+    if (mod.init) await mod.init();
+    loadedModules[moduleName] = { mod, status: 'initialized' };
+    return `Module '${moduleName}' reloaded successfully.`;
+  } catch (e) {
+    throw new Error(`Failed to reload module '${moduleName}': ${e.message}`);
+  }
+}
+
 module.exports = {
   initModule,
   closeModule,
   statusModule,
   restartModule,
   helpModule,
-  getLoadedModule // Returns the loaded module object for the given moduleName, or null if not loaded.
+  getLoadedModule, // Returns the loaded module object for the given moduleName, or null if not loaded.
+  reloadModule
 };

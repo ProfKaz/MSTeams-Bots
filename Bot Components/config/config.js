@@ -16,4 +16,5 @@ module.exports = {
   oauthConnectionName: process.env.OAUTH_CONNECTION_NAME,
   isLocal: process.env.NODE_ENV !== 'production',
   port: process.env.PORT || 3978,
+  baseUrl: process.env.BASE_URL,
 };
