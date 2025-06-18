@@ -1,67 +1,113 @@
-# Bot Capabilities Matrix
+# Kaz Bot Capabilities Matrix (v2.1 – June 2025)
 
-This matrix includes all validated capabilities available in the Kaz Bot implementation, confirmed from the `server.js` source, `.env` configuration, and past chat-based setup instructions. Tables are grouped by function: runtime services, memory handling, command parsing, and advanced configurations.
+This matrix presents all validated features and the latest upgrades in Kaz Bot, focusing on modular integration, runtime flexibility, memory management, and developer productivity. The bot is designed for extensibility, supporting rapid addition of integration modules and advanced LLM-driven scenarios.
 
 ---
 
 ## ✅ Core Runtime Features
 
-| Feature             | Present | Notes                                              |
-| ------------------- | ------- | -------------------------------------------------- |
-| Express Server      | Yes     | Listens on `/api/messages` and `/health`           |
-| dotenv config       | Yes     | Loads environment variables from `.env`            |
-| BotFrameworkAdapter | Yes     | Fully configured with optional App ID and Password |
-| Error Handling      | Yes     | User-friendly emoji-based error responses          |
-| Message Routing     | Yes     | All user messages routed via `handleMessage()`     |
-| Health Endpoint     | Yes     | Returns `200 OK` at `/health`                      |
+| Feature                   | Present | Notes                                                                   |
+| ------------------------- | ------- | ----------------------------------------------------------------------- |
+| Express Server            | Yes     | Listens on `/api/messages` and `/health`                                |
+| dotenv config             | Yes     | Loads environment variables from `.env`                                 |
+| BotFrameworkAdapter       | Yes     | Microsoft Teams/Azure integration via App ID & secret                   |
+| Error Handling            | Yes     | Emoji-based user-friendly errors; logs for development                  |
+| Health Endpoint           | Yes     | Returns `200 OK` at `/health`                                           |
+| **Live Module Reload**    | Yes     | Instantly detects and loads new/updated integration modules, no restart |
+| Dynamic Base URL Handling | Yes     | Auto-detects base URL for exports/downloads                             |
+
+---
+
+## 🔌 Integration Modules (Modular Architecture)
+
+| Feature/Standard                        | Present | Notes                                                                 |
+| --------------------------------------- | ------- | --------------------------------------------------------------------- |
+| Easy Module Creation                    | Yes     | Simply add a folder with `main.js` and `info.md` under `/services`    |
+| **Hot Reload for Modules**              | Yes     | New or updated modules are auto-loaded—no service restart required    |
+| Module Structure Validation             | Yes     | Warns if `main.js` or required files are missing                      |
+| **moduleStructure.js** for Custom Needs | Yes     | Optionally define/check required files per integration                |
+| Proactive Developer Warnings            | Yes     | Explains missing/incomplete module setups                             |
+| Standardized Logging per Module         | Yes     | Each module can add logs for diagnostics                              |
+| Example Modules Provided                | Yes     | Sample integrations (Entra, Graph, Purview) accelerate new module dev |
+| Extensible API Surface                  | Yes     | Integration modules can expose new bot commands, endpoints, or logic  |
+| Separation of Core/Service Logic        | Yes     | Keeps core bot clean; all integrations isolated in `/services`        |
 
 ---
 
 ## 🧠 Memory and Session Management
 
-| Capability                 | Present | Notes                                                       |
-| -------------------------- | ------- | ----------------------------------------------------------- |
-| MemoryProvider integration | Yes     | Loads/stores memory per user                                |
-| In-memory state            | Yes     | Conversation and User scoped memory fallback                |
-| Azure Blob support         | Yes     | Enabled via `.env` and used through `memoryProvider.js`     |
-| Long-term session tracking | Yes     | Memory persists across restarts if Azure Blob is configured |
+| Capability                     | Present | Notes                                                                   |
+| ------------------------------ | ------- | ----------------------------------------------------------------------- |
+| MemoryProvider abstraction     | Yes     | Pluggable: supports in-memory or Azure Blob                             |
+| In-memory state fallback       | Yes     | Default if no persistent storage configured                             |
+| Azure Blob Storage (Long-term) | Yes     | Persistent memory per user/session, supports scaling                    |
+| Memory listing & filtering     | Yes     | `list memory`, `list memory full`, `show last N`                        |
+| Session reset                  | Yes     | `reset memory` command clears all session memory                        |
+| Memory export                  | Yes     | Downloadable exports in JSON/Markdown format, public download endpoints |
+| Filtered exports               | Yes     | Excludes system/greeting messages as needed                             |
+| Session analytics by module    | Yes     | Command-based stats by integration window/module                        |
+
+---
+
+## 🤖 LLM & Topic Management Capabilities
+
+| Feature/Functionality                | Present | Notes                                                                     |
+| ------------------------------------ | ------- | ------------------------------------------------------------------------- |
+| LLM integration (Azure OpenAI, etc.) | Yes     | Default fallback for free-form queries, using latest Azure OpenAI models  |
+| Prompt Optimization/Formatting       | Yes     | Commands and memory logs are formatted to optimize LLM performance        |
+| Topic Management                     | Yes     | Supports "topics" to group context for LLM sessions and improve relevance |
+| Topic-based Memory Retrieval         | Yes     | Allows fetching memory or answers scoped to a topic                       |
+| Modular Prompt Engineering           | Yes     | New modules can inject or adjust LLM prompts dynamically                  |
+| Conversation context awareness       | Yes     | Maintains relevant chat history for better LLM responses                  |
+| Developer extensibility              | Yes     | Custom LLM backends or prompt management modules can be integrated        |
 
 ---
 
 ## 💬 Command Parsing and Responses
 
-| Command                           | Present | Notes                                     |
-| --------------------------------- | ------- | ----------------------------------------- |
-| `KazBot help!`                    | Yes     | Lists supported commands                  |
-| `list memory`, `list memory full` | Yes     | Lists short or complete memory log        |
-| `show last N`                     | Yes     | Fetches N latest memory entries via regex |
-| `reset memory`                    | Yes     | Clears all saved memory                   |
-| Fallback to OpenAI Chat           | Yes     | All other text is sent to Azure OpenAI    |
-| `conversationUpdate`              | Yes     | Sends greeting + help menu on join        |
+| Command/Feature                     | Present | Notes                                                   |
+| ----------------------------------- | ------- | ------------------------------------------------------- |
+| `KazBot help!`                      | Yes     | Lists all supported commands                            |
+| `list memory`, `list memory full`   | Yes     | Short or complete memory log                            |
+| `show last N`                       | Yes     | Fetches last N memory entries                           |
+| `reset memory`                      | Yes     | Resets session memory                                   |
+| Export commands                     | Yes     | Exports memory, answers, or full logs as files          |
+| Dynamic analytics per window        | Yes     | Session analytics by module window                      |
+| Custom command support (per module) | Yes     | New commands are auto-registered with each integration  |
+| Fallback to LLM                     | Yes     | Any unsupported command defaults to OpenAI/LLM response |
 
 ---
 
 ## 🔐 Authentication Methods
 
-| Method                                  | Present   | Notes                                                            |
-| --------------------------------------- | --------- | ---------------------------------------------------------------- |
-| Microsoft Entra OAuthPrompt scaffolding | Preserved | Uses `OAUTH_CONNECTION_NAME` from `.env`, dialog included        |
-| App ID / Password Authentication        | Optional  | Only used when configured in `.env`, otherwise skipped for local |
-| Bot Service OAuth Connection            | Available | Required when used in Teams via Azure Bot configuration          |
+| Method                                  | Present | Notes                                                             |
+| --------------------------------------- | ------- | ----------------------------------------------------------------- |
+| Microsoft Entra OAuthPrompt scaffolding | Yes     | Uses `OAUTH_CONNECTION_NAME` from `.env`                          |
+| App ID / Password Authentication        | Yes     | Used when configured for App Service or Azure Bot deployment      |
+| Bot Service OAuth (Teams)               | Yes     | Required for Teams/Azure Bot Service                              |
+| Local Auth fallback                     | Yes     | Supports mock/local mode for development without Azure dependency |
 
 ---
 
-## 🧪 Advanced or Placeholder Features
+## 🛠️ Developer & Advanced Features
 
-| Feature                             | Status           | Notes                                                          |
-| ----------------------------------- | ---------------- | -------------------------------------------------------------- |
-| Middleware Bot Logic for eDiscovery | Placeholder only | Architecture ready, functionality can be wired into middleware |
-| Static File Export (Markdown, JSON) | Yes              | Memory export written to files and available via public route  |
-| Client/Secret for Azure identity    | Yes              | Configured via `.env` and referenced in OAuth connection       |
-| Azure OpenAI integration            | Partially active | Keys and deployment name set, endpoint format needs validation |
+| Feature                               | Present | Notes                                                                 |
+| ------------------------------------- | ------- | --------------------------------------------------------------------- |
+| Debug logging toggle                  | Yes     | Enable/disable detailed logs via environment or config                |
+| Structured folder and file validation | Yes     | Explains recommended structure; helpful for open-source contributors  |
+| Health checks, endpoints, diagnostics | Yes     | `/health` endpoint, improved error handling                           |
+| Branding guide enforcement            | Yes     | Branding/UX assets for all modules (per `Kaz Demos – Branding Guide`) |
 
 ---
 
-If new modules are added (e.g., proactive notifications, adaptive cards, APIs), this matrix should be updated accordingly.
+## Change Log (Recent Highlights)
 
-<br><br>
+* **Modular integration system with live reload**
+* **LLM and topic management for enhanced AI responses**
+* **Easy plug-and-play for new services and integrations**
+* **Improved exports, memory analytics, and logging**
+* **Faster developer onboarding with clear folder standards**
+
+---
+
+### #KazBot #IntegrationModules #ModularBot #LLM #PromptEngineering #AzureOpenAI #BotFramework #HotReload #NodeJS #DeveloperExperience #MemoryManagement #OpenSource
